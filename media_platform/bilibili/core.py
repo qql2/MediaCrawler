@@ -515,7 +515,7 @@ class BilibiliCrawler(AbstractCrawler):
                     "height": 1080
                 },
                 user_agent=user_agent,
-                channel="chrome",  # Use system's stable Chrome version
+                channel="msedge",  # Use system's stable MS Edge version
             )
             return browser_context
         else:
