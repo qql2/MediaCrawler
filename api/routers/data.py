@@ -42,6 +42,9 @@ def get_file_info(file_path: Path) -> dict:
                 data = json.load(f)
                 if isinstance(data, list):
                     record_count = len(data)
+        elif file_path.suffix == ".jsonl":
+            with open(file_path, "r", encoding="utf-8") as f:
+                record_count = sum(1 for _ in f)
         elif file_path.suffix == ".csv":
             with open(file_path, "r", encoding="utf-8") as f:
                 record_count = sum(1 for _ in f) - 1  # Subtract header row
@@ -65,7 +68,7 @@ async def list_data_files(platform: Optional[str] = None, file_type: Optional[st
         return {"files": []}
 
     files = []
-    supported_extensions = {".json", ".csv", ".xlsx", ".xls"}
+    supported_extensions = {".json", ".jsonl", ".csv", ".xlsx", ".xls"}
 
     for root, dirs, filenames in os.walk(DATA_DIR):
         root_path = Path(root)
@@ -121,6 +124,26 @@ async def get_file_content(file_path: str, preview: bool = True, limit: int = 10
                     if isinstance(data, list):
                         return {"data": data[:limit], "total": len(data)}
                     return {"data": data, "total": 1}
+            elif full_path.suffix == ".jsonl":
+                with open(full_path, "r", encoding="utf-8") as f:
+                    rows = []
+                    for i, line in enumerate(f):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            rows.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            pass
+                        if len(rows) >= limit:
+                            break
+                    # Count total lines
+                    total = 0
+                    with open(full_path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            if line.strip():
+                                total += 1
+                    return {"data": rows, "total": total}
             elif full_path.suffix == ".csv":
                 import csv
                 with open(full_path, "r", encoding="utf-8") as f:
@@ -200,7 +223,7 @@ async def get_data_stats():
         "by_type": {}
     }
 
-    supported_extensions = {".json", ".csv", ".xlsx", ".xls"}
+    supported_extensions = {".json", ".jsonl", ".csv", ".xlsx", ".xls"}
 
     for root, dirs, filenames in os.walk(DATA_DIR):
         root_path = Path(root)

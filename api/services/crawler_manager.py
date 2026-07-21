@@ -204,7 +204,13 @@ class CrawlerManager:
 
     def _build_command(self, config: CrawlerStartRequest) -> list:
         """Build main.py command line arguments"""
-        cmd = ["uv", "run", "python", "main.py"]
+        # Use .venv/bin/python directly (uv run triggers uv sync which rebuilds
+        # cryptography from source and requires Rust toolchain)
+        venv_python = os.path.join(os.path.dirname(__file__), "..", "..", ".venv", "bin", "python3")
+        if os.path.exists(venv_python):
+            cmd = [os.path.abspath(venv_python), "main.py"]
+        else:
+            cmd = ["uv", "run", "python", "main.py"]
 
         cmd.extend(["--platform", config.platform.value])
         cmd.extend(["--lt", config.login_type.value])
